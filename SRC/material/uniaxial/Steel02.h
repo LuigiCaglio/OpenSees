@@ -17,11 +17,11 @@
 **   Filip C. Filippou (filippou@ce.berkeley.edu)                     **
 **                                                                    **
 ** ****************************************************************** */
-                                                                        
+
 // $Revision: 1.3 $
 // $Date: 2006-11-03 18:40:20 $
 // $Source: /usr/local/cvs/OpenSees/SRC/material/uniaxial/Steel02.h,v $
-                                                                      
+
 // Written: fmk
 // Created: 03/06
 //
@@ -43,56 +43,62 @@
 
 class Steel02 : public UniaxialMaterial
 {
-  public:
+public:
     Steel02(int tag,
-	    double fy, double E0, double b,
-	    double R0, double cR1, double cR2,
+        double fy, double E0, double b,
+        double R0, double cR1, double cR2,
 	    double a1, double a2, double a3, double a4, double sigInit =0.0);
-    
+
     // Constructor for no isotropic hardening
     Steel02(int tag,
-	    double fy, double E0, double b,
-	    double R0, double cR1, double cR2);
-    
+        double fy, double E0, double b,
+        double R0, double cR1, double cR2);
+
     // Constructor for no isotropic hardening
     // Also provides default values for R0, cR1, and cR2
     Steel02(int tag, double fy, double E0, double b);
-	    
+
     Steel02(void);
     virtual ~Steel02();
-    
+
 
     const char *getClassType(void) const {return "Steel02";};
 
     double getInitialTangent(void);
     UniaxialMaterial *getCopy(void);
 
-    int setTrialStrain(double strain, double strainRate = 0.0); 
-    double getStrain(void);      
+    int setTrialStrain(double strain, double strainRate = 0.0);
+    double getStrain(void);
     double getStress(void);
     double getTangent(void);
-    
+
     int commitState(void);
-    int revertToLastCommit(void);    
-    int revertToStart(void);        
-    
+    int revertToLastCommit(void);
+    int revertToStart(void);
+
     int sendSelf(int commitTag, Channel &theChannel);  
     int recvSelf(int commitTag, Channel &theChannel, 
 		 FEM_ObjectBroker &theBroker);    
-    
+
     void Print(OPS_Stream &s, int flag =0);
 
+    // AddingSensitivity:BEGIN //////////
     int setParameter(const char **argv, int argc, Parameter &param);
     int updateParameter(int parameterID, Information &info);
-    
-    //by SAJalali
-	virtual double getEnergy() { return EnergyP; };
+    int activateParameter(int parameterID);
+    double getStressSensitivity(int gradIndex, bool conditional);
+    double getInitialTangentSensitivity(int gradIndex);
+    int commitSensitivity(double strainGradient, int gradIndex, int numGrads);
+    // AddingSensitivity:END ///////////
 
- protected:
-    
- private:
-	 double EnergyP; //by SAJalali
-	 // matpar : STEEL FIXED PROPERTIES
+    //by SAJalali
+    virtual double getEnergy() { return EnergyP; };
+
+protected:
+
+private:
+    double EnergyP; //by SAJalali
+    // matpar : STEEL FIXED PROPERTIES
     double Fy;  //  = matpar(1)  : yield stress
     double E0;  //  = matpar(2)  : initial stiffness
     double b;   //  = matpar(3)  : hardening ratio (Esh/E0)
@@ -118,19 +124,39 @@ class Steel02 : public UniaxialMaterial
     double sigP;  //  = stress at previous converged step
     double eP;    //   stiffness modulus at last converged step;
 
-    double epsmin; 
-    double epsmax; 
-    double epspl;  
-    double epss0;  
-    double sigs0; 
-    double epsr;  
-    double sigr;  
-    int    kon;    
-    double sig;   
-    double e;     
+    double epsmin;
+    double epsmax;
+    double epspl;
+    double epss0;
+    double sigs0;
+    double epsr;
+    double sigr;
+    int    kon;
+    double sig;
+    double e;
     double eps;   //  = strain at current step
+    int parameterID;
+    Matrix* SHVs;  // Sensitivity history variables
+    // Row 0: strain sensitivity
+    // Row 1: stress sensitivity  
+    // Row 2: epsr sensitivity
+    // Row 3: sigr sensitivity
+    // Row 4: epss0 sensitivity
+    // Row 5: sigs0 sensitivity
+    // Row 6: epspl sensitivity
+
+    void computeAsymptoticPointSensitivities(
+        double& epss0Sensitivity,
+        double& sigs0Sensitivity,
+        double epsrSensitivity,
+        double sigrSensitivity,
+        int gradIndex
+    );
+    double computeStressGradient(double strainSensitivity,
+        double epsrSens, double sigrSens,
+        double epss0Sens, double sigs0Sens,
+        double epsplSens); 
 };
 
 
 #endif
-
